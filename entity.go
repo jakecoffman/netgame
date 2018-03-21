@@ -13,5 +13,5 @@ type PositionState struct {
 }
 
 func (e *Entity) ApplyInput(input Input) {
-	e.X += float64(input.PressTime) * e.Speed
+	e.X += float64(input.PressTime) * 0.5
 }

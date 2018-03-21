@@ -12,7 +12,7 @@ type Client struct {
 	KeyLeft, KeyRight bool
 
 	// Simulated network connection.
-	Network LagNetwork
+	Network *LagNetwork
 
 	// This is a reference to the server so we can send data to it
 	Server *Server
@@ -43,7 +43,12 @@ type Renderer interface {
 }
 
 func NewClient(renderer Renderer) *Client {
-	c := &Client{EntityId: -1, Entities: map[int]*Entity{}, renderer: renderer}
+	c := &Client{
+		EntityId: -1,
+		Entities: map[int]*Entity{},
+		Network: &LagNetwork{},
+		renderer: renderer,
+	}
 	c.SetUpdateRate(time.Second/50)
 	go func() {
 		for {

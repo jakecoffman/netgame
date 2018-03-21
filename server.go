@@ -2,7 +2,6 @@ package netgame
 
 import (
 	"time"
-	"fmt"
 )
 
 type Server struct {
@@ -11,7 +10,7 @@ type Server struct {
 
 	lastProcessedInput []int
 
-	Network LagNetwork
+	Network *LagNetwork
 
 	updateRate float64
 	tick       *time.Ticker
@@ -20,7 +19,10 @@ type Server struct {
 }
 
 func NewServer(renderer Renderer) *Server {
-	s := &Server{renderer: renderer}
+	s := &Server{
+		Network: &LagNetwork{},
+		renderer: renderer,
+	}
 	s.SetUpdateRate(10)
 	go func() {
 		for {
@@ -51,9 +53,9 @@ func (s *Server) Connect(client *Client) {
 	s.lastProcessedInput = append(s.lastProcessedInput, 0)
 
 	if entity.ID == 0 {
-		entity.X = 4
+		entity.X = 40
 	} else {
-		entity.X = 6
+		entity.X = 60
 	}
 }
 
@@ -68,7 +70,7 @@ func (s *Server) validateInput(input Input) bool {
 	if p < 0 {
 		p *= -1
 	}
-	return p <= 1/40 * 1000 * 1000
+	return p <= 1./40. * 1000
 }
 
 func (s *Server) processInputs() {
@@ -85,7 +87,6 @@ func (s *Server) processInputs() {
 		if s.validateInput(input) {
 			id := input.EntityId
 			s.Entities[id].ApplyInput(input)
-			fmt.Println(input.Sequence)
 			s.lastProcessedInput[id] = input.Sequence
 		}
 	}

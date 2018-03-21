@@ -1,6 +1,8 @@
 package netgame
 
-import "time"
+import (
+	"time"
+)
 
 // Msg is either an Input (client->server) or a WorldState (server->client)
 type Msg interface{}
