@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// Client holds the game data that the client will render
 type Client struct {
 	// Local representation of the entities.
 	Entities map[int]*Entity
@@ -49,7 +50,7 @@ func NewClient(renderer Renderer) *Client {
 		Network: &LagNetwork{},
 		renderer: renderer,
 	}
-	c.SetUpdateRate(time.Second/50)
+	c.SetUpdateRate(time.Second/60)
 	go func() {
 		for {
 			<-c.tick.C
@@ -149,7 +150,7 @@ func (c *Client) processServerMessages() {
 					}
 				} else {
 					// Reconciliation is disabled, so drop all the saved inputs.
-					c.PendingInputs = c.PendingInputs[:]
+					c.PendingInputs = c.PendingInputs[0:0]
 				}
 				continue
 			}
@@ -169,7 +170,7 @@ func (c *Client) processServerMessages() {
 
 func (c *Client) interpolateEntities() {
 	now := timeNowMs()
-	renderTimestamp := now - c.Server.updateRate
+	renderTimestamp := now - (1000. / c.Server.updatesPerSecond)
 
 	for id, entity := range c.Entities {
 		if id == c.EntityId {

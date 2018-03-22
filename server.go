@@ -1,19 +1,21 @@
 package netgame
 
 import (
+	"fmt"
 	"time"
 )
 
+// Server holds the server-side game state
 type Server struct {
-	Clients []*Client
-	Entities []*Entity
+	clients  []*Client
+	entities []*Entity
 
 	lastProcessedInput []int
 
 	Network *LagNetwork
 
-	updateRate float64
-	tick       *time.Ticker
+	updatesPerSecond float64
+	tick             *time.Ticker
 
 	renderer Renderer
 }
@@ -34,7 +36,7 @@ func NewServer(renderer Renderer) *Server {
 }
 
 func (s *Server) SetUpdateRate(hz float64) {
-	s.updateRate = hz
+	s.updatesPerSecond = hz
 	if s.tick != nil {
 		s.tick.Stop()
 	}
@@ -43,11 +45,11 @@ func (s *Server) SetUpdateRate(hz float64) {
 
 func (s *Server) Connect(client *Client) {
 	client.Server = s
-	client.EntityId = len(s.Clients)
-	s.Clients = append(s.Clients, client)
+	client.EntityId = len(s.clients)
+	s.clients = append(s.clients, client)
 
 	entity := &Entity{}
-	s.Entities = append(s.Entities, entity)
+	s.entities = append(s.entities, entity)
 	entity.ID = client.EntityId
 
 	s.lastProcessedInput = append(s.lastProcessedInput, 0)
@@ -62,7 +64,7 @@ func (s *Server) Connect(client *Client) {
 func (s *Server) Update() {
 	s.processInputs()
 	s.sendWorldState()
-	s.renderer.Render(s.Entities)
+	s.renderer.Render(s.entities)
 }
 
 func (s *Server) validateInput(input Input) bool {
@@ -86,17 +88,18 @@ func (s *Server) processInputs() {
 		input := msg.(Input)
 		if s.validateInput(input) {
 			id := input.EntityId
-			s.Entities[id].ApplyInput(input)
+			s.entities[id].ApplyInput(input)
 			s.lastProcessedInput[id] = input.Sequence
+		} else {
+			fmt.Println("Input is invalid for entity", input.EntityId)
 		}
 	}
 }
 
 func (s *Server) sendWorldState() {
 	var worldState WorldState
-	numClients := len(s.Clients)
-	for i := 0; i < numClients; i++ {
-		entity := s.Entities[i]
+	for i := 0; i < len(s.clients); i++ {
+		entity := s.entities[i]
 		worldState.States = append(worldState.States, State{
 			EntityId: entity.ID,
 			X: entity.X,
@@ -104,7 +107,7 @@ func (s *Server) sendWorldState() {
 		})
 	}
 
-	for _, client := range s.Clients {
+	for _, client := range s.clients {
 		client.Network.Send(client.LagMs, worldState)
 	}
 }

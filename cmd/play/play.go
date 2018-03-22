@@ -9,15 +9,15 @@ import (
 	"fmt"
 	"os"
 	"github.com/jakecoffman/netgame"
-	"runtime"
 )
 
 var (
 	server *netgame.Server
 	client1, client2 *netgame.Client
 
-	serverRenderer *renderer
-	client1Renderer, client2Renderer *renderer
+	serverRenderer = &renderer{}
+	client1Renderer = &renderer{}
+	client2Renderer = &renderer{}
 )
 
 var (
@@ -25,26 +25,24 @@ var (
 )
 
 func main() {
-	runtime.GOMAXPROCS(1)
-
-	serverRenderer = &renderer{}
-	client1Renderer = &renderer{}
-	client2Renderer = &renderer{}
-
 	server = netgame.NewServer(serverRenderer)
 	client1 = netgame.NewClient(client1Renderer)
 	client2 = netgame.NewClient(client2Renderer)
 	server.Connect(client1)
 	server.Connect(client2)
 
+	// change these values to induce latency
 	client1.LagMs = 250
 	client2.LagMs = 150
 
+	// immediately apply local changes to yourself to appear smoother
 	client1.UseClientSidePrediction = true
-	client1.UseEntityInterpolation = true
+	// when receiving position from server, playback unacknowledged inputs
 	client1.UseServerReconciliation = true
+	// view other entities slightly in the past so that their movements are smoother
+	client1.UseEntityInterpolation = true
 
-	err := ebiten.Run(update, 800, 600, 1, "Realtime Multiplayer")
+	err := ebiten.Run(update, 300, 240, 2, "Realtime Multiplayer")
 	if err != nil && err != ErrUserExit {
 		fmt.Fprintln(os.Stderr, err)
 	}
@@ -84,13 +82,28 @@ func update(screen *ebiten.Image) error {
 		client2.KeyLeft = false
 	}
 
-	// draw
-	screen.Fill(color.White)
-	ebitenutil.DebugPrint(screen, "Hello world!")
+	if ebiten.IsRunningSlowly() {
+		return nil
+	}
 
-	draw(screen, client1Renderer.entities, 100)
-	draw(screen, serverRenderer.entities, 200)
-	draw(screen, client2Renderer.entities, 300)
+	// draw
+	screen.Fill(color.Black)
+	ebitenutil.DebugPrint(screen, fmt.Sprintf(`FPS: %0.2f
+Client 1 Unacked: %v
+Client 2 Unacked: %v
+
+Client 1: (<- ->) %vms lag
+
+
+Server:
+
+
+Client 2: (A D) %vms lag
+`, ebiten.CurrentFPS(), len(client1.PendingInputs), len(client2.PendingInputs), client1.LagMs, client2.LagMs))
+
+	draw(screen, client1Renderer.entities, 90)
+	draw(screen, serverRenderer.entities, 140)
+	draw(screen, client2Renderer.entities, 190)
 	return nil
 }
 

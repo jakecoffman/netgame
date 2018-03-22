@@ -19,6 +19,7 @@ type WorldState struct {
 	States []State
 }
 
+// State is a package of entity data sent in the WorldState
 type State struct {
 	EntityId int
 	X float64
@@ -50,7 +51,7 @@ func (n *LagNetwork) Recv() (Msg, bool) {
 	for i := 0; i < len(n.Messages); i++ {
 		if n.Messages[i].RecvTime < now {
 			data := n.Messages[i].Data
-			n.Messages = n.Messages[i+1:]
+			n.Messages = append(n.Messages[:i], n.Messages[i+1:]...)
 			return data, true
 		}
 	}
